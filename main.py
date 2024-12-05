@@ -1,54 +1,64 @@
 import streamlit as st
+import google.generativeai as genai
+import PIL.Image
+
+def process_image_with_gemini(image):
+    """
+    Process the captured image using Gemini API
+    """
+    # Replace 'YOUR_GEMINI_API_KEY' with your actual Gemini API key
+    genai.configure(api_key=st.secrets["API_KEY"])
+
+    # Initialize the generative model
+    model = genai.GenerativeModel('gemini-1.5-pro')
+
+    try:
+        # Convert Streamlit UploadedFile to PIL Image
+        pil_image = PIL.Image.open(image)
+
+        # Generate description of the image
+        response = model.generate_content([
+            "OCR the equation or the maths problem and solve it and give step-by-step solution", 
+            pil_image
+        ])
+
+        return response.text
+    except Exception as e:
+        return f"Error processing image: {str(e)}"
 
 def main():
-    st.title("Camera Access")
+    st.set_page_config(page_title="Camera Capture", layout="wide")
+    st.title("Camera Capture with Gemini Image Analysis")
 
-    # Custom JavaScript for camera permission
-    camera_script = """
-    <script>
-    const getCameraPermission = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            stream.getTracks().forEach(track => track.stop());
-            window.cameraPermission = true;
-            window.parent.postMessage('cameraGranted', '*');
-        } catch (err) {
-            window.cameraPermission = false;
-            window.parent.postMessage('cameraDenied', '*');
-        }
-    };
-
-    // Auto-trigger permission request
-    getCameraPermission();
-    </script>
-    """
-    
-    # Inject JavaScript
-    st.markdown(camera_script, unsafe_allow_html=True)
-
-    # Add event listener for permission messages
+    # Wider camera input with custom styling
     st.markdown("""
-    <script>
-    window.addEventListener('message', (event) => {
-        if (event.data === 'cameraGranted') {
-            // Camera access granted
-            window.streamlit.setComponentValue(true);
-        } else if (event.data === 'cameraDenied') {
-            // Camera access denied
-            window.streamlit.setComponentValue(false);
-        }
-    }, false);
-    </script>
+    <style>
+    .stCameraInput > div > div > video, 
+    .stCameraInput > div > div > img {
+        width: 100%;
+        max-width: 800px;
+        height: auto;
+        margin: 0 auto;
+        display: block;
+    }
+    </style>
     """, unsafe_allow_html=True)
 
-    # Check permission status
-    permission = st.empty()
-    
-    # Camera input with conditional rendering
-    picture = st.camera_input("Take a picture")
+    # Camera input
+    picture = st.camera_input("Take a picture", key="camera")
     
     if picture:
-        st.image(picture)
+        # Display captured image
+        st.image(picture, caption="Captured Image")
+        
+        # Option to process image with Gemini
+        if st.button("Analyze Image with Gemini"):
+            with st.spinner('Analyzing image...'):
+                description = process_image_with_gemini(picture)
+                st.write("Gemini's Image Description:")
+                st.info(description)
+        
+        # Download button
         st.download_button(
             label="Download Image", 
             data=picture, 
