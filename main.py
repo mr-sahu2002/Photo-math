@@ -38,7 +38,7 @@ def main():
             # Rotate image
             rotated_img = rotate_image(cv2_img, rotation_angle)
             
-            # Display captured and rotated image
+            # Display captured and rotated images
             st.subheader("Captured Image")
             st.image(rotated_img, channels="BGR")
             
